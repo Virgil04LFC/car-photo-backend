@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from app.services.photoroom import process_image
+from app.services.photoroom import process_image, ProcessingTimings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -41,9 +41,12 @@ async def process(
     )
 
     try:
-        result_png = await process_image(image_bytes, background_id)
+        result_png, timings = await process_image(image_bytes, background_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except TimeoutError as exc:
+        logger.error("Photoroom timeout: %s", exc)
+        raise HTTPException(status_code=504, detail=str(exc))
     except RuntimeError as exc:
         logger.error("Photoroom error: %s", exc)
         raise HTTPException(status_code=502, detail=str(exc))
@@ -51,5 +54,10 @@ async def process(
     return Response(
         content=result_png,
         media_type="image/png",
-        headers={"X-Background-Id": background_id},
+        headers={
+            "X-Background-Id": background_id,
+            "X-Processing-Time-Ms": str(timings.total_ms),
+            "X-Resize-Time-Ms": str(timings.resize_ms),
+            "X-Photoroom-Time-Ms": str(timings.photoroom_ms),
+        },
     )

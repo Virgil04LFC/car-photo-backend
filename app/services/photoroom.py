@@ -7,13 +7,17 @@ Auth: x-api-key header
 
 This module handles:
   - Resizing input to max 3000px long edge at JPEG quality 92 before upload
+    (runs in a thread-pool executor — PIL is CPU-bound and must not block the event loop)
   - Calling Photoroom with the correct background params
   - AI shadow (shadow.mode=ai.soft)
   - Returning PNG bytes — lossless, ready to save to gallery
+  - Per-stage timing (resize_ms, photoroom_ms, total_ms) returned alongside the image
 """
 
+import asyncio
 import io
 import logging
+import time
 from pathlib import Path
 
 import httpx
@@ -63,25 +67,50 @@ def _resize_to_max(image_bytes: bytes, max_long_edge: int) -> bytes:
     return buf.getvalue()
 
 
-async def process_image(image_bytes: bytes, background_id: str) -> bytes:
+class ProcessingTimings:
+    """Per-stage wall-clock timings for a single process_image call."""
+    def __init__(self, resize_ms: int, photoroom_ms: int, total_ms: int):
+        self.resize_ms = resize_ms
+        self.photoroom_ms = photoroom_ms
+        self.total_ms = total_ms
+
+    def __str__(self) -> str:
+        return (
+            f"resize={self.resize_ms}ms "
+            f"photoroom={self.photoroom_ms}ms "
+            f"total={self.total_ms}ms"
+        )
+
+
+async def process_image(image_bytes: bytes, background_id: str) -> tuple[bytes, ProcessingTimings]:
     """
-    Send image to Photoroom, return PNG bytes of the result.
+    Send image to Photoroom, return (PNG bytes, timings).
 
     Raises:
         ValueError: unknown background_id
+        TimeoutError: Photoroom call exceeded REQUEST_TIMEOUT_S
         RuntimeError: Photoroom API error (includes status code + body excerpt)
     """
+    t_start = time.monotonic()
+
     bg = get_background(background_id)
     if bg is None:
         raise ValueError(f"Unknown background_id: {background_id!r}")
 
-    # 1. Resize before upload
-    resized = _resize_to_max(image_bytes, settings.max_long_edge_px)
+    # 1. Resize before upload — run in thread pool so PIL doesn't block the event loop
+    loop = asyncio.get_event_loop()
+    resized = await loop.run_in_executor(
+        None, _resize_to_max, image_bytes, settings.max_long_edge_px
+    )
+    t_after_resize = time.monotonic()
+    resize_ms = round((t_after_resize - t_start) * 1000)
+
     logger.info(
-        "Sending to Photoroom: %d bytes → resized %d bytes, bg=%s",
+        "Sending to Photoroom: %d bytes → resized %d bytes, bg=%s (resize=%dms)",
         len(image_bytes),
         len(resized),
         background_id,
+        resize_ms,
     )
 
     # 2. Build request
@@ -117,13 +146,23 @@ async def process_image(image_bytes: bytes, background_id: str) -> bytes:
     }
 
     # 3. Call Photoroom
+    t_before_photoroom = time.monotonic()
     async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_S) as client:
-        response = await client.post(
-            PHOTOROOM_API_URL,
-            headers=headers,
-            data=data,
-            files=files,
-        )
+        try:
+            response = await client.post(
+                PHOTOROOM_API_URL,
+                headers=headers,
+                data=data,
+                files=files,
+            )
+        except httpx.TimeoutException:
+            raise TimeoutError(
+                f"Photoroom did not respond within {REQUEST_TIMEOUT_S:.0f}s — try again"
+            )
+
+    t_end = time.monotonic()
+    photoroom_ms = round((t_end - t_before_photoroom) * 1000)
+    total_ms = round((t_end - t_start) * 1000)
 
     if response.status_code != 200:
         body_excerpt = response.text[:600]
@@ -132,5 +171,6 @@ async def process_image(image_bytes: bytes, background_id: str) -> bytes:
         )
 
     result = response.content
-    logger.info("Photoroom result: %d bytes PNG", len(result))
-    return result
+    timings = ProcessingTimings(resize_ms=resize_ms, photoroom_ms=photoroom_ms, total_ms=total_ms)
+    logger.info("Photoroom result: %d bytes PNG — %s", len(result), timings)
+    return result, timings
