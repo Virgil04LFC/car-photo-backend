@@ -97,20 +97,16 @@ async def process_image(image_bytes: bytes, background_id: str) -> tuple[bytes, 
     if bg is None:
         raise ValueError(f"Unknown background_id: {background_id!r}")
 
-    # 1. Resize before upload — run in thread pool so PIL doesn't block the event loop
-    loop = asyncio.get_event_loop()
-    resized = await loop.run_in_executor(
-        None, _resize_to_max, image_bytes, settings.max_long_edge_px
-    )
+    # 1. Phone resizes to 2000px max before upload — no backend resize needed.
+    #    _resize_to_max is kept for future use (e.g. image-file backgrounds).
+    resized = image_bytes
     t_after_resize = time.monotonic()
     resize_ms = round((t_after_resize - t_start) * 1000)
 
     logger.info(
-        "Sending to Photoroom: %d bytes → resized %d bytes, bg=%s (resize=%dms)",
+        "Sending to Photoroom: %d bytes, bg=%s",
         len(image_bytes),
-        len(resized),
         background_id,
-        resize_ms,
     )
 
     # 2. Build request
