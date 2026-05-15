@@ -112,8 +112,15 @@ async def process_image(image_bytes: bytes, background_id: str) -> tuple[bytes, 
     # 2. Build request
     data: dict[str, str] = {
         "removeBackground": "true",
-        "export.format": "png",        # lossless output, no compression artefacts
-        "shadow.mode": "ai.soft",      # realistic AI shadow under the car
+        "export.format": "png",           # lossless output, no compression artefacts
+        # Shadow v2 (model: 2026-04-15) — auto mode with upright pose hint.
+        # For colour backgrounds the shadow falls on the solid colour.
+        # For image backgrounds the shadow is generated with the scene in context.
+        "shadow.mode": "ai.auto-with-overrides",
+        "shadow.subjectPoseOverride": "upright",   # cars are always upright
+        "shadow.spreadOverride": "short",           # tight contact shadow, not long cast
+        # Horizontal alignment: always centre the car in the frame.
+        "horizontalAlignment": "center",
     }
 
     files: dict = {
@@ -148,9 +155,27 @@ async def process_image(image_bytes: bytes, background_id: str) -> tuple[bytes, 
         logger.info("Using solid colour background: #%s", bg["color"])
         data["background.color"] = bg["color"]
 
+    # Floor-aware vertical placement for image backgrounds.
+    # paddingBottom reserves the floor zone; verticalAlignment=bottom snaps the
+    # car's lowest point (wheel contact) to the top of that reserved zone.
+    pad_bottom: float | None = bg.get("placement_pad_bottom") if bg_image_path else None
+    if pad_bottom is not None:
+        data["paddingBottom"] = str(pad_bottom)
+        data["padding"] = "0.05"         # small equal margin on sides and top
+        data["verticalAlignment"] = "bottom"
+        logger.info(
+            "Floor placement: paddingBottom=%.2f verticalAlignment=bottom (bg=%s)",
+            pad_bottom, background_id,
+        )
+    else:
+        # Colour backgrounds: 8% uniform padding — car centred in frame.
+        data["padding"] = "0.08"
+
     headers = {
         "x-api-key": settings.photoroom_api_key,
         "Accept": "image/png",
+        # Shadow v2 model header (required to activate ai.auto-with-overrides)
+        "pr-ai-shadows-model-version": "2026-04-15",
     }
 
     # 3. Call Photoroom

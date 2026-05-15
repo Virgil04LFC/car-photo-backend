@@ -19,7 +19,13 @@ from app.models import Background
 # Absolute path to the backgrounds/ asset directory (repo root / backgrounds)
 _BACKGROUNDS_DIR = Path(__file__).parent.parent.parent / "backgrounds"
 
+# Colour-only backgrounds use `color` (hex, no #).
+# Image backgrounds use `image_path` (relative to backgrounds/ dir) plus placement metadata:
+#   floor_y_from_bottom  — measured floor-wall boundary as fraction from bottom (documentation)
+#   placement_pad_bottom — paddingBottom value passed to Photoroom; places wheel contact point
+#                          within the floor zone. See BACKGROUND_SPEC.md for the spec.
 BACKGROUND_LIBRARY: dict[str, dict] = {
+    # ── Solid colour backdrops ──────────────────────────────────────────────
     "showroom-light": {
         "name": "Light Showroom",
         "description": "Clean light grey studio with subtle floor reflection",
@@ -62,17 +68,26 @@ BACKGROUND_LIBRARY: dict[str, dict] = {
         "preview_color": "#87CEEB",
         "color": "87CEEB",
     },
+    # ── Image-based backgrounds ─────────────────────────────────────────────
+    # floor_y_from_bottom: PIL-measured floor-wall boundary (see BACKGROUND_SPEC.md)
+    # placement_pad_bottom: paddingBottom passed to Photoroom for wheel alignment
     "industrial-garage": {
         "name": "Industrial Garage",
         "description": "Working industrial garage with concrete floor, shutter door, and overhead lighting — suits SUVs, vans, and family cars",
         "preview_color": "#7A7568",
         "image_path": "industrial-garage.jpg",
+        "floor_y_from_bottom": 0.70,   # large warehouse floor, wall/shutter in top 30%
+        "placement_pad_bottom": 0.10,  # wheels 10% from bottom, deep in concrete floor
+        "scene_type": "interior",
     },
     "white-studio": {
         "name": "White Studio",
         "description": "Clean white showroom with overhead spot lighting and white floor — suits newer cars and premium listings",
         "preview_color": "#F5F5F5",
         "image_path": "white-studio.jpg",
+        "floor_y_from_bottom": 0.35,   # seamless cyc; effective white floor in bottom 35%
+        "placement_pad_bottom": 0.08,  # wheels tight to bottom on clean white surface
+        "scene_type": "interior",
     },
 }
 
