@@ -62,6 +62,18 @@ BACKGROUND_LIBRARY: dict[str, dict] = {
         "preview_color": "#87CEEB",
         "color": "87CEEB",
     },
+    "industrial-garage": {
+        "name": "Industrial Garage",
+        "description": "Working industrial garage with concrete floor, shutter door, and overhead lighting — suits SUVs, vans, and family cars",
+        "preview_color": "#7A7568",
+        "image_path": "industrial-garage.jpg",
+    },
+    "white-studio": {
+        "name": "White Studio",
+        "description": "Clean white showroom with overhead spot lighting and white floor — suits newer cars and premium listings",
+        "preview_color": "#F5F5F5",
+        "image_path": "white-studio.jpg",
+    },
 }
 
 
