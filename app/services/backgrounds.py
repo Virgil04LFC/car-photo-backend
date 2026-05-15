@@ -71,31 +71,13 @@ BACKGROUND_LIBRARY: dict[str, dict] = {
     # ── Image-based backgrounds ─────────────────────────────────────────────
     # floor_y_from_bottom: PIL-measured floor-wall boundary (see BACKGROUND_SPEC.md)
     # placement_pad_bottom: paddingBottom passed to Photoroom for wheel alignment
-    "industrial-garage": {
-        "name": "Industrial Garage",
-        "description": "Working industrial garage with concrete floor, shutter door, and overhead lighting — suits SUVs, vans, and family cars",
-        "preview_color": "#7A7568",
-        "image_path": "industrial-garage.jpg",
-        "floor_y_from_bottom": 0.70,   # large warehouse floor, wall/shutter in top 30%
-        "placement_pad_bottom": 0.10,  # wheels 10% from bottom, deep in concrete floor
-        "scene_type": "interior",
-    },
-    "white-studio": {
-        "name": "White Studio",
-        "description": "Clean white showroom with overhead spot lighting and white floor — suits newer cars and premium listings",
-        "preview_color": "#F5F5F5",
-        "image_path": "white-studio.jpg",
-        "floor_y_from_bottom": 0.35,   # seamless cyc; effective white floor in bottom 35%
-        "placement_pad_bottom": 0.08,  # wheels tight to bottom on clean white surface
-        "scene_type": "interior",
-    },
-    "turntable-test": {
-        "name": "Turntable (Test)",
-        "description": "Cinematic dark showroom with raised concrete turntable platform and LED lighting — exploratory test background",
-        "preview_color": "#2C3035",
-        "image_path": "turntable-test.jpg",
-        "floor_y_from_bottom": 0.36,   # platform top surface measured at ~36% from bottom
-        "placement_pad_bottom": 0.36,  # wheels on platform top surface
+    "concrete-warm": {
+        "name": "Concrete Warm",
+        "description": "Warm cream sweep with soft LED floor-wall glow — clean studio backdrop, no perspective lines",
+        "preview_color": "#C8B99A",
+        "image_path": "concrete-warm.jpg",
+        "floor_y_from_bottom": 0.26,   # LED strip junction at 23.8%, wall-floor boundary ~26%
+        "placement_pad_bottom": 0.10,  # wheels 10% from bottom, mid-floor zone
         "scene_type": "interior",
     },
 }
