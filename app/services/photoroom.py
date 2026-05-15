@@ -124,16 +124,28 @@ async def process_image(image_bytes: bytes, background_id: str) -> tuple[bytes, 
     bg_image_path: str | None = bg.get("image_path")
     if bg_image_path:
         full_path = backgrounds_dir() / bg_image_path
+        logger.info("Background image path resolved: %s (exists=%s)", full_path, full_path.exists())
         if full_path.exists():
+            bg_bytes = full_path.read_bytes()
+            # Detect format from file extension; Photoroom accepts JPEG and PNG
+            mime = "image/jpeg" if str(full_path).lower().endswith((".jpg", ".jpeg")) else "image/png"
             files["background.imageFile"] = (
                 full_path.name,
-                full_path.read_bytes(),
-                "image/png",
+                bg_bytes,
+                mime,
+            )
+            logger.info(
+                "Attaching background image: %s (%d bytes, %s)",
+                full_path.name, len(bg_bytes), mime,
             )
         else:
-            logger.warning("Background image not found: %s — falling back to colour", full_path)
+            logger.warning(
+                "Background image NOT FOUND: %s — falling back to colour %s",
+                full_path, bg.get("color", "EBEBEB"),
+            )
             data["background.color"] = bg.get("color", "EBEBEB")
     elif "color" in bg:
+        logger.info("Using solid colour background: #%s", bg["color"])
         data["background.color"] = bg["color"]
 
     headers = {

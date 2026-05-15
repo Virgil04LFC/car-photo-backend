@@ -8,9 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ app/
-# Note: backgrounds/ image assets are not needed yet — all Phase 1 backgrounds are colour-based
-# (passed via background.color param to Photoroom). Add COPY backgrounds/ when image-file
-# backgrounds are introduced.
+# Copy background image assets (used for image_path-mode backgrounds sent to Photoroom)
+COPY backgrounds/ backgrounds/
 
 EXPOSE 8080
 
