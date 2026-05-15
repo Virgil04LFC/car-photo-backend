@@ -89,6 +89,15 @@ BACKGROUND_LIBRARY: dict[str, dict] = {
         "placement_pad_bottom": 0.08,  # wheels tight to bottom on clean white surface
         "scene_type": "interior",
     },
+    "turntable-test": {
+        "name": "Turntable (Test)",
+        "description": "Cinematic dark showroom with raised concrete turntable platform and LED lighting — exploratory test background",
+        "preview_color": "#2C3035",
+        "image_path": "turntable-test.jpg",
+        "floor_y_from_bottom": 0.36,   # platform top surface measured at ~36% from bottom
+        "placement_pad_bottom": 0.36,  # wheels on platform top surface
+        "scene_type": "interior",
+    },
 }
 
 
